@@ -1,0 +1,3 @@
+[submodule "htmlcxx"]
+	path = htmlcxx
+	url = git://git.code.sf.net/p/htmlcxx/code
