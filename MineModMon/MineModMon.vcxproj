@@ -196,9 +196,6 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="MineModMon.h" />
     <ClInclude Include="MineModMonDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -219,6 +216,8 @@
     <ResourceCompile Include="MineModMon.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\LICENSE" />
+    <None Include="..\README.md" />
     <None Include="res\MineModMon.rc2" />
   </ItemGroup>
   <ItemGroup>
