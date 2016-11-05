@@ -1,11 +1,26 @@
+/*
 
-// MineModMonDlg.cpp : implementation file
-//
+Minecraft Mods Monitor (MineModMon)
+Copyright (C) 2016 Nikolay Raspopov <raspopov@cherubicsoft.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 
 #include "stdafx.h"
 #include "MineModMon.h"
 #include "MineModMonDlg.h"
-#include "afxdialogex.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -32,6 +47,7 @@ BEGIN_MESSAGE_MAP(CMineModMonDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_DESTROY()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 // CMineModMonDlg message handlers
@@ -40,13 +56,20 @@ BOOL CMineModMonDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
+	SetWindowText( AfxGetAppName() );
+
 	// Set the icon for this dialog.  The framework does this automatically
 	//  when the application's main window is not a dialog
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	m_wndProjectList.InsertColumn( COL_ID, _T("id"), LVCFMT_LEFT, 200 );
-	m_wndProjectList.InsertColumn( COL_NAME, _T("name"), LVCFMT_LEFT, 200 );
+	m_wndProjectList.SetView( LV_VIEW_TILE );
+	LVTILEVIEWINFO lvtvwi = { sizeof( LVTILEVIEWINFO ), LVTVIM_COLUMNS, 0, { }, 4 };
+	m_wndProjectList.SetTileViewInfo( &lvtvwi );
+	m_wndProjectList.InsertColumn( COL_ID, _T("id") );
+	m_wndProjectList.InsertColumn( COL_NAME, _T("name") );
+
+	UpdateSizes();
 
 	Start();
 
@@ -124,7 +147,24 @@ void CMineModMonDlg::Update()
 
 			const auto index = m_wndProjectList.InsertItem( m_wndProjectList.GetCountPerPage(), CA2T( prj.id.c_str() ) );
 			m_wndProjectList.SetItemText( index, COL_NAME, CA2T( prj.image.c_str() ) );
+			
+			UINT cols[ 1 ] = { COL_NAME };
+			int fmts[ 1 ] = { LVCFMT_LEFT };
+			LVTILEINFO lvti = { sizeof( LVTILEINFO ), index, 1, cols, fmts };
+			m_wndProjectList.SetTileInfo( &lvti );
 		}
+	}
+}
+
+void CMineModMonDlg::UpdateSizes()
+{
+	if ( IsWindow( m_wndProjectList.m_hWnd ) )
+	{
+		CRect rc;
+		m_wndProjectList.GetClientRect( &rc );
+		LVTILEVIEWINFO lvtvwi = { sizeof( LVTILEVIEWINFO ), LVTVIM_TILESIZE, LVTVIF_FIXEDWIDTH, { rc.Width() - GetSystemMetrics( SM_CXVSCROLL ) - 4, 0 } };
+		m_wndProjectList.SetTileViewInfo( &lvtvwi );
+		m_wndProjectList.RedrawWindow();
 	}
 }
 
@@ -150,6 +190,8 @@ void CMineModMonDlg::DownloadIndex(CInternetSession* pSession)
 		sURL.Format( _T("https://minecraft.curseforge.com/mc-mods?filter-sort=updated&page=%d"), page );
 		try
 		{
+			TRACE( "URL -> %s\n", CT2A( sURL ) );
+
 			CAutoPtr< CStdioFile > stream( pSession->OpenURL( sURL ) );
 			if ( stream )
 			{
@@ -164,6 +206,8 @@ void CMineModMonDlg::DownloadIndex(CInternetSession* pSession)
 					html.append( buf, read );
 				}
 				stream->Close();
+
+				TRACE( "Downloaded -> %u bytes\n", html.size() );
 
 				HTML::ParserDom parser;
 				const auto tr = parser.parseTree( html );
@@ -289,4 +333,11 @@ void CMineModMonDlg::Thread()
 	}
 
 	CoUninitialize();
+}
+
+void CMineModMonDlg::OnSize( UINT nType, int cx, int cy )
+{
+	CDialogEx::OnSize( nType, cx, cy );
+
+	UpdateSizes();
 }
